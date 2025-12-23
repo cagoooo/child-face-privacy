@@ -1,37 +1,43 @@
 /* =====================================================
    兒童臉部隱私保護工具 - Application Logic
-   Version: 1.0.0 (2023-12-23)
+   Child Face Privacy Tool
+   Version: 1.1.0 (2024-12-23)
    ===================================================== */
 
-// 版本紀錄
-const VERSION = '1.0.0';
-const VERSION_DATE = '2023-12-23';
-console.log(`%c🛡️ 兒童臉部隱私保護工具 v${VERSION}`,
+// 版本紀錄 (Version History)
+const VERSION = '1.1.0';
+const VERSION_DATE = '2024-12-23';
+console.log(`%c🛡️ 兒童臉部隱私保護工具 v${VERSION} (Child Face Privacy Tool)`,
     'color: #6366f1; font-size: 16px; font-weight: bold;');
-console.log(`%c📅 更新日期: ${VERSION_DATE}`, 'color: #94a3b8;');
-console.log('%c📋 更新紀錄:', 'color: #10b981; font-weight: bold;');
+console.log(`%c📅 更新日期 (Updated): ${VERSION_DATE}`, 'color: #94a3b8;');
+console.log('%c📋 更新紀錄 (Changelog):', 'color: #10b981; font-weight: bold;');
 console.log(`%c
-  v1.0.0 (2023-12-23)
-  ├─ ✨ 核心功能
-  │   ├─ 自動臉部偵測 (face-api.js)
-  │   ├─ 智慧年齡判斷 (可設定 ≤12 歲)
-  │   ├─ Emoji 遮蓋 (6 種表情)
-  │   └─ 批次上傳/下載
+  v1.1.0 (2024-12-23) - Enhanced Detection & Mask Types
+  ├─ 🔍 偵測升級 (Detection Upgrade)
+  │   ├─ SSD MobileNet 模型 (More accurate)
+  │   ├─ FaceLandmarks68 臉部特徵點
+  │   └─ 臉部旋轉偵測 (Face rotation)
   │
-  ├─ 🔧 編輯功能
-  │   ├─ 手動新增/移除遮蓋
-  │   ├─ 拖曳移動遮蓋位置
-  │   └─ 調整遮蓋大小
+  ├─ 🎭 遮蓋類型 (Mask Types)
+  │   ├─ Emoji 表情遮蓋
+  │   ├─ 馬賽克效果 (Mosaic)
+  │   └─ 模糊效果 (Blur)
   │
-  ├─ 🎨 UI/UX 優化
-  │   ├─ 對比滑桿 (原圖/處理後)
-  │   ├─ 處理完成自動滾動
-  │   ├─ 按鈕文字說明
-  │   └─ 完整 RWD 響應式設計
+  └─ 🎨 UI 優化 (UI Improvements)
+      └─ 遮蓋類型選擇器
+
+  v1.0.0 (2024-12-23) - Initial Release
+  ├─ ✨ 核心功能 (Core Features)
+  │   ├─ 自動臉部偵測 (Auto face detection)
+  │   ├─ 智慧年齡判斷 (AI age estimation)
+  │   └─ 批次上傳/下載 (Batch upload/download)
   │
-  └─ 📱 PWA 支援
-      ├─ 離線快取
-      └─ 可安裝為 App
+  ├─ 🔧 編輯功能 (Edit Mode)
+  │   ├─ 手動新增/移除遮蓋 (Add/remove masks)
+  │   └─ 拖曳調整 (Drag to move/resize)
+  │
+  └─ 📱 PWA 支援 (PWA Support)
+      └─ 離線快取 (Offline cache)
 `, 'color: #64748b;');
 
 // Application State
