@@ -1,43 +1,40 @@
 /* =====================================================
    兒童臉部隱私保護工具 - Application Logic
    Child Face Privacy Tool
-   Version: 1.1.0 (2024-12-23)
+   Version: 1.3.0 (2024-12-23)
    ===================================================== */
 
 // 版本紀錄 (Version History)
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const VERSION_DATE = '2024-12-23';
 console.log(`%c🛡️ 兒童臉部隱私保護工具 v${VERSION} (Child Face Privacy Tool)`,
     'color: #6366f1; font-size: 16px; font-weight: bold;');
 console.log(`%c📅 更新日期 (Updated): ${VERSION_DATE}`, 'color: #94a3b8;');
 console.log('%c📋 更新紀錄 (Changelog):', 'color: #10b981; font-weight: bold;');
 console.log(`%c
+  v1.3.0 (2024-12-23) - Code Optimization & Touch Gestures
+  ├─ 🧹 程式碼重構 (Code Refactoring)
+  │   └─ 合併重複函數，減少 ~100 行程式碼
+  │
+  ├─ 📱 觸控手勢優化 (Touch Gestures)
+  │   ├─ 雙指縮放調整遮蓋大小 (Pinch to resize)
+  │   ├─ 雙指旋轉調整角度 (Two-finger rotate)
+  │   └─ 觸覺回饋提示 (Haptic feedback)
+  │
+  └─ 🔄 上傳進度覆蓋層 (Upload Progress Overlay)
+
+  v1.2.0 (2024-12-23) - Upload Progress
+  └─ 📊 四階段上傳進度指示器
+
   v1.1.0 (2024-12-23) - Enhanced Detection & Mask Types
-  ├─ 🔍 偵測升級 (Detection Upgrade)
-  │   ├─ SSD MobileNet 模型 (More accurate)
-  │   ├─ FaceLandmarks68 臉部特徵點
-  │   └─ 臉部旋轉偵測 (Face rotation)
-  │
-  ├─ 🎭 遮蓋類型 (Mask Types)
-  │   ├─ Emoji 表情遮蓋
-  │   ├─ 馬賽克效果 (Mosaic)
-  │   └─ 模糊效果 (Blur)
-  │
-  └─ 🎨 UI 優化 (UI Improvements)
-      └─ 遮蓋類型選擇器
+  ├─ 🔍 SSD MobileNet 模型
+  ├─ 🎭 遮蓋類型 (Emoji/馬賽克/模糊)
+  └─ 🎨 遮蓋類型選擇器
 
   v1.0.0 (2024-12-23) - Initial Release
-  ├─ ✨ 核心功能 (Core Features)
-  │   ├─ 自動臉部偵測 (Auto face detection)
-  │   ├─ 智慧年齡判斷 (AI age estimation)
-  │   └─ 批次上傳/下載 (Batch upload/download)
-  │
-  ├─ 🔧 編輯功能 (Edit Mode)
-  │   ├─ 手動新增/移除遮蓋 (Add/remove masks)
-  │   └─ 拖曳調整 (Drag to move/resize)
-  │
-  └─ 📱 PWA 支援 (PWA Support)
-      └─ 離線快取 (Offline cache)
+  ├─ ✨ 自動臉部偵測 & 年齡判斷
+  ├─ 🔧 編輯模式 (拖曳/縮放)
+  └─ 📱 PWA 離線支援
 `, 'color: #64748b;');
 
 // Application State
@@ -67,7 +64,16 @@ const editState = {
     canvas: null,
     ctx: null,
     image: null,
-    scale: 1
+    scale: 1,
+    // Multi-touch gesture state
+    isPinching: false,
+    isRotating: false,
+    initialPinchDistance: 0,
+    initialPinchSize: 0,
+    initialRotation: 0,
+    initialMaskRotation: 0,
+    lastTouchCenter: null,
+    touchStartTime: 0
 };
 
 // DOM Elements
@@ -363,7 +369,11 @@ async function processFiles(files) {
             // Update current file info
             updateUploadProgress(processedCount, totalFiles, file.name, null);
 
-            const result = await processImageWithProgress(file, processedCount, totalFiles);
+            const result = await processImage(file, {
+                showProgress: true,
+                currentIndex: processedCount,
+                totalFiles: totalFiles
+            });
             state.processedImages.push(result);
             addPreviewCard(result, state.processedImages.length - 1);
             processedCount++;
@@ -483,13 +493,22 @@ function updateStageProgress(current, total, stagePercent) {
     elements.uploadProgressPercent.textContent = `${Math.round(totalProgress)}%`;
 }
 
-// Process Single Image with Progress
-async function processImageWithProgress(file, currentIndex, totalFiles) {
+// Process Single Image with Progress (Unified function)
+// @param {File} file - The image file to process
+// @param {Object} options - Optional settings
+// @param {boolean} options.showProgress - Whether to show progress overlay (default: false)
+// @param {number} options.currentIndex - Current file index for progress (default: 0)
+// @param {number} options.totalFiles - Total files for progress (default: 1)
+async function processImage(file, options = {}) {
+    const { showProgress = false, currentIndex = 0, totalFiles = 1 } = options;
+
     return new Promise((resolve, reject) => {
         // Stage 1: Reading file
-        resetUploadStages();
-        setUploadStage('reading', 'active');
-        updateStageProgress(currentIndex, totalFiles, 10);
+        if (showProgress) {
+            resetUploadStages();
+            setUploadStage('reading', 'active');
+            updateStageProgress(currentIndex, totalFiles, 10);
+        }
 
         const img = new Image();
         const reader = new FileReader();
@@ -498,19 +517,23 @@ async function processImageWithProgress(file, currentIndex, totalFiles) {
             const originalDataUrl = e.target.result;
 
             // Stage 1 complete, Stage 2: Loading image
-            setUploadStage('reading', 'complete');
-            setUploadStage('loading', 'active');
-            updateStageProgress(currentIndex, totalFiles, 25);
-            updateUploadProgress(currentIndex, totalFiles, file.name, originalDataUrl);
+            if (showProgress) {
+                setUploadStage('reading', 'complete');
+                setUploadStage('loading', 'active');
+                updateStageProgress(currentIndex, totalFiles, 25);
+                updateUploadProgress(currentIndex, totalFiles, file.name, originalDataUrl);
+            }
 
             img.src = originalDataUrl;
 
             img.onload = async () => {
                 try {
                     // Stage 2 complete, Stage 3: Detecting faces
-                    setUploadStage('loading', 'complete');
-                    setUploadStage('detecting', 'active');
-                    updateStageProgress(currentIndex, totalFiles, 50);
+                    if (showProgress) {
+                        setUploadStage('loading', 'complete');
+                        setUploadStage('detecting', 'active');
+                        updateStageProgress(currentIndex, totalFiles, 50);
+                    }
 
                     // 使用 SSD MobileNet 進行更精準的偵測
                     const detections = await faceapi
@@ -521,9 +544,11 @@ async function processImageWithProgress(file, currentIndex, totalFiles) {
                         .withAgeAndGender();
 
                     // Stage 3 complete, Stage 4: Applying masks
-                    setUploadStage('detecting', 'complete');
-                    setUploadStage('masking', 'active');
-                    updateStageProgress(currentIndex, totalFiles, 75);
+                    if (showProgress) {
+                        setUploadStage('detecting', 'complete');
+                        setUploadStage('masking', 'active');
+                        updateStageProgress(currentIndex, totalFiles, 75);
+                    }
 
                     const masks = [];
                     let maskedCount = 0;
@@ -582,113 +607,17 @@ async function processImageWithProgress(file, currentIndex, totalFiles) {
                         drawMask(ctx, mask, img);
                     }
 
-                    updateStageProgress(currentIndex, totalFiles, 95);
+                    if (showProgress) {
+                        updateStageProgress(currentIndex, totalFiles, 95);
+                    }
 
                     canvas.toBlob((blob) => {
                         // Stage 4 complete
-                        setUploadStage('masking', 'complete');
-                        updateStageProgress(currentIndex, totalFiles, 100);
-
-                        resolve({
-                            originalName: file.name,
-                            processedName: `protected_${file.name}`,
-                            blob: blob,
-                            dataUrl: canvas.toDataURL('image/png'),
-                            originalDataUrl: originalDataUrl,
-                            faceCount: detections.length,
-                            maskedCount: maskedCount,
-                            masks: masks,
-                            width: img.naturalWidth,
-                            height: img.naturalHeight
-                        });
-                    }, 'image/png');
-                } catch (error) { reject(error); }
-            };
-            img.onerror = () => reject(new Error('Failed to load image'));
-        };
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
-    });
-}
-
-// Process Single Image
-async function processImage(file) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        const reader = new FileReader();
-
-        reader.onload = async (e) => {
-            const originalDataUrl = e.target.result;
-            img.src = originalDataUrl;
-
-            img.onload = async () => {
-                try {
-                    // 使用 SSD MobileNet 進行更精準的偵測
-                    const detections = await faceapi
-                        .detectAllFaces(img, new faceapi.SsdMobilenetv1Options({
-                            minConfidence: 0.3
-                        }))
-                        .withFaceLandmarks()
-                        .withAgeAndGender();
-
-                    const masks = [];
-                    let maskedCount = 0;
-
-                    for (const detection of detections) {
-                        const box = detection.detection.box;
-                        const age = Math.round(detection.age);
-                        const isChild = age <= state.ageThreshold;
-                        const shouldMask = !state.childOnlyMode || isChild;
-
-                        if (shouldMask) {
-                            // 計算臉部旋轉角度
-                            let rotation = 0;
-                            if (detection.landmarks) {
-                                const leftEye = detection.landmarks.getLeftEye();
-                                const rightEye = detection.landmarks.getRightEye();
-                                if (leftEye.length > 0 && rightEye.length > 0) {
-                                    const leftCenter = {
-                                        x: leftEye.reduce((s, p) => s + p.x, 0) / leftEye.length,
-                                        y: leftEye.reduce((s, p) => s + p.y, 0) / leftEye.length
-                                    };
-                                    const rightCenter = {
-                                        x: rightEye.reduce((s, p) => s + p.x, 0) / rightEye.length,
-                                        y: rightEye.reduce((s, p) => s + p.y, 0) / rightEye.length
-                                    };
-                                    rotation = Math.atan2(rightCenter.y - leftCenter.y, rightCenter.x - leftCenter.x);
-                                }
-                            }
-
-                            masks.push({
-                                id: `mask_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                                x: box.x + box.width / 2,
-                                y: box.y + box.height / 2,
-                                size: Math.max(box.width, box.height) * (state.emojiSizePercent / 100),
-                                width: box.width,
-                                height: box.height,
-                                emoji: state.selectedEmoji,
-                                maskType: state.maskType,
-                                rotation: rotation,
-                                isChild: isChild,
-                                age: age
-                            });
-                            maskedCount++;
+                        if (showProgress) {
+                            setUploadStage('masking', 'complete');
+                            updateStageProgress(currentIndex, totalFiles, 100);
                         }
-                    }
 
-                    // Create processed canvas
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                    ctx.drawImage(img, 0, 0);
-
-                    // Draw masks based on type
-                    for (const mask of masks) {
-                        drawMask(ctx, mask, img);
-                    }
-
-                    canvas.toBlob((blob) => {
                         resolve({
                             originalName: file.name,
                             processedName: `protected_${file.name}`,
@@ -1176,19 +1105,124 @@ function handleCanvasMouseUp() {
     editState.isResizing = false;
 }
 
-// Touch handlers
+// ===================== ENHANCED TOUCH HANDLERS =====================
+
+// Calculate distance between two touch points
+function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Calculate angle between two touch points
+function getTouchAngle(touches) {
+    const dx = touches[1].clientX - touches[0].clientX;
+    const dy = touches[1].clientY - touches[0].clientY;
+    return Math.atan2(dy, dx);
+}
+
+// Get center point between two touches
+function getTouchCenter(touches) {
+    return {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2
+    };
+}
+
+// Enhanced touch start handler
 function handleCanvasTouchStart(e) {
     e.preventDefault();
-    handleCanvasMouseDown(e);
+    editState.touchStartTime = Date.now();
+
+    if (e.touches.length === 1) {
+        // Single touch - treat as mouse click/drag
+        handleCanvasMouseDown(e);
+    } else if (e.touches.length === 2 && editState.selectedMaskIndex >= 0) {
+        // Two finger touch - pinch to resize / rotate
+        const mask = editState.masks[editState.selectedMaskIndex];
+
+        editState.isPinching = true;
+        editState.isRotating = true;
+        editState.isDragging = false;
+        editState.isResizing = false;
+
+        editState.initialPinchDistance = getTouchDistance(e.touches);
+        editState.initialPinchSize = mask.size;
+        editState.initialRotation = getTouchAngle(e.touches);
+        editState.initialMaskRotation = mask.rotation || 0;
+        editState.lastTouchCenter = getTouchCenter(e.touches);
+
+        // Haptic feedback if available
+        if (navigator.vibrate) {
+            navigator.vibrate(10);
+        }
+    }
 }
 
+// Enhanced touch move handler
 function handleCanvasTouchMove(e) {
     e.preventDefault();
-    handleCanvasMouseMove(e);
+
+    if (e.touches.length === 1) {
+        // Single touch - treat as mouse move
+        handleCanvasMouseMove(e);
+    } else if (e.touches.length === 2 && editState.selectedMaskIndex >= 0) {
+        // Two finger gesture
+        const mask = editState.masks[editState.selectedMaskIndex];
+
+        if (editState.isPinching) {
+            // Pinch to resize
+            const currentDistance = getTouchDistance(e.touches);
+            const scale = currentDistance / editState.initialPinchDistance;
+            mask.size = Math.max(30, Math.min(500, editState.initialPinchSize * scale));
+        }
+
+        if (editState.isRotating) {
+            // Two finger rotate
+            const currentAngle = getTouchAngle(e.touches);
+            const angleDiff = currentAngle - editState.initialRotation;
+            mask.rotation = editState.initialMaskRotation + angleDiff;
+        }
+
+        // Move mask with two-finger pan
+        const currentCenter = getTouchCenter(e.touches);
+        if (editState.lastTouchCenter) {
+            const rect = editState.canvas.getBoundingClientRect();
+            const dx = (currentCenter.x - editState.lastTouchCenter.x) / editState.scale;
+            const dy = (currentCenter.y - editState.lastTouchCenter.y) / editState.scale;
+            mask.x += dx;
+            mask.y += dy;
+        }
+        editState.lastTouchCenter = currentCenter;
+
+        renderEditCanvas();
+    }
 }
 
+// Enhanced touch end handler
 function handleCanvasTouchEnd(e) {
-    handleCanvasMouseUp();
+    // Check for long press (to trigger delete/action menu)
+    const touchDuration = Date.now() - editState.touchStartTime;
+
+    if (e.touches.length === 0) {
+        // All fingers lifted
+        if (editState.isPinching || editState.isRotating) {
+            // Haptic feedback for gesture completion
+            if (navigator.vibrate) {
+                navigator.vibrate(5);
+            }
+        }
+
+        editState.isPinching = false;
+        editState.isRotating = false;
+        editState.lastTouchCenter = null;
+        handleCanvasMouseUp();
+    } else if (e.touches.length === 1) {
+        // One finger remains - switch back to drag mode
+        editState.isPinching = false;
+        editState.isRotating = false;
+        editState.lastTouchCenter = null;
+    }
 }
 
 function finishEditing() {
