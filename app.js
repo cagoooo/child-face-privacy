@@ -38,6 +38,7 @@ console.log(`%c
 const state = {
     selectedEmoji: '😊',
     emojiSizePercent: 110,
+    maskType: 'emoji', // 'emoji', 'mosaic', 'blur'
     processedImages: [],
     isModelLoaded: false,
     isProcessing: false,
@@ -92,7 +93,9 @@ const elements = {
     addMaskBtn: document.getElementById('addMaskBtn'),
     finishEditBtn: document.getElementById('finishEditBtn'),
     cancelEditBtn: document.getElementById('cancelEditBtn'),
-    editEmojiOptions: document.getElementById('editEmojiOptions')
+    editEmojiOptions: document.getElementById('editEmojiOptions'),
+    maskTypeOptions: document.getElementById('maskTypeOptions'),
+    emojiSection: document.getElementById('emojiSection')
 };
 
 // Initialize Application
@@ -116,6 +119,11 @@ function setupEventListeners() {
     elements.clearAllBtn.addEventListener('click', clearAll);
     elements.downloadAllBtn.addEventListener('click', downloadAll);
     elements.installBtn.addEventListener('click', handleInstallClick);
+
+    // Mask Type Selection
+    if (elements.maskTypeOptions) {
+        elements.maskTypeOptions.addEventListener('click', handleMaskTypeSelect);
+    }
 
     // Edit Modal Events
     elements.addMaskBtn.addEventListener('click', toggleAddMode);
@@ -176,19 +184,46 @@ function handleAgeThresholdChange(e) {
     elements.ageValue.textContent = `≤ ${state.ageThreshold} 歲`;
 }
 
+// Handle Mask Type Selection
+function handleMaskTypeSelect(e) {
+    if (e.target.classList.contains('mask-type-btn')) {
+        // Update active state
+        document.querySelectorAll('.mask-type-btn').forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+
+        // Update state
+        state.maskType = e.target.dataset.type;
+
+        // Show/hide emoji section based on type
+        if (elements.emojiSection) {
+            if (state.maskType === 'emoji') {
+                elements.emojiSection.style.display = 'block';
+            } else {
+                elements.emojiSection.style.display = 'none';
+            }
+        }
+
+        showToast(`已切換為 ${e.target.textContent.trim()} 模式`, 'success');
+    }
+}
+
 // Load Face Detection Models
 async function loadFaceDetectionModels() {
     try {
-        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+        elements.modelStatus.textContent = '⏳ 正在載入增強版偵測模型...';
+
+        // 使用本地更強的 SSD MobileNet 模型
+        const MODEL_URL = './models';
         await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-            faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+            faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
             faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
         ]);
+
         state.isModelLoaded = true;
-        elements.modelStatus.textContent = '✅ 臉部偵測模型載入完成，可以開始上傳照片';
+        elements.modelStatus.textContent = '✅ 增強版臉部偵測模型載入完成';
         elements.modelSection.querySelector('.model-status').classList.add('ready');
-        showToast('模型載入成功！可以開始上傳照片', 'success');
+        showToast('增強版模型載入成功！偵測更精準', 'success');
     } catch (error) {
         console.error('Failed to load models:', error);
         elements.modelStatus.textContent = '❌ 模型載入失敗，請重新整理頁面';
@@ -276,12 +311,12 @@ async function processImage(file) {
 
             img.onload = async () => {
                 try {
-                    // 使用更高解析度和更低閾值來增強偵測
+                    // 使用 SSD MobileNet 進行更精準的偵測
                     const detections = await faceapi
-                        .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({
-                            inputSize: 640,        // 從 512 提升到 640
-                            scoreThreshold: 0.2    // 從 0.3 降低到 0.2
+                        .detectAllFaces(img, new faceapi.SsdMobilenetv1Options({
+                            minConfidence: 0.3
                         }))
+                        .withFaceLandmarks()
                         .withAgeAndGender();
 
                     const masks = [];
@@ -294,12 +329,34 @@ async function processImage(file) {
                         const shouldMask = !state.childOnlyMode || isChild;
 
                         if (shouldMask) {
+                            // 計算臉部旋轉角度
+                            let rotation = 0;
+                            if (detection.landmarks) {
+                                const leftEye = detection.landmarks.getLeftEye();
+                                const rightEye = detection.landmarks.getRightEye();
+                                if (leftEye.length > 0 && rightEye.length > 0) {
+                                    const leftCenter = {
+                                        x: leftEye.reduce((s, p) => s + p.x, 0) / leftEye.length,
+                                        y: leftEye.reduce((s, p) => s + p.y, 0) / leftEye.length
+                                    };
+                                    const rightCenter = {
+                                        x: rightEye.reduce((s, p) => s + p.x, 0) / rightEye.length,
+                                        y: rightEye.reduce((s, p) => s + p.y, 0) / rightEye.length
+                                    };
+                                    rotation = Math.atan2(rightCenter.y - leftCenter.y, rightCenter.x - leftCenter.x);
+                                }
+                            }
+
                             masks.push({
                                 id: `mask_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                                 x: box.x + box.width / 2,
                                 y: box.y + box.height / 2,
                                 size: Math.max(box.width, box.height) * (state.emojiSizePercent / 100),
+                                width: box.width,
+                                height: box.height,
                                 emoji: state.selectedEmoji,
+                                maskType: state.maskType,
+                                rotation: rotation,
                                 isChild: isChild,
                                 age: age
                             });
@@ -314,12 +371,9 @@ async function processImage(file) {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0);
 
-                    // Draw masks
+                    // Draw masks based on type
                     for (const mask of masks) {
-                        ctx.font = `${mask.size}px serif`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(mask.emoji, mask.x, mask.y);
+                        drawMask(ctx, mask, img);
                     }
 
                     canvas.toBlob((blob) => {
@@ -343,6 +397,94 @@ async function processImage(file) {
         reader.onerror = () => reject(new Error('Failed to read file'));
         reader.readAsDataURL(file);
     });
+}
+
+// Draw mask based on type (emoji, mosaic, blur)
+function drawMask(ctx, mask, img) {
+    ctx.save();
+    ctx.translate(mask.x, mask.y);
+    ctx.rotate(mask.rotation || 0);
+
+    const halfSize = mask.size / 2;
+
+    switch (mask.maskType || 'emoji') {
+        case 'mosaic':
+            drawMosaic(ctx, -halfSize, -halfSize, mask.size, mask.size, img, mask);
+            break;
+        case 'blur':
+            drawBlur(ctx, -halfSize, -halfSize, mask.size, mask.size, img, mask);
+            break;
+        case 'emoji':
+        default:
+            ctx.font = `${mask.size}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(mask.emoji, 0, 0);
+            break;
+    }
+
+    ctx.restore();
+}
+
+// Draw mosaic effect
+function drawMosaic(ctx, x, y, width, height, img, mask) {
+    const blockSize = Math.max(8, Math.floor(mask.size / 8));
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // Get the face region from original image
+    const srcX = Math.max(0, mask.x - width / 2);
+    const srcY = Math.max(0, mask.y - height / 2);
+    const srcW = Math.min(width, img.naturalWidth - srcX);
+    const srcH = Math.min(height, img.naturalHeight - srcY);
+
+    tempCanvas.width = srcW;
+    tempCanvas.height = srcH;
+    tempCtx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+
+    // Create circular clip
+    ctx.beginPath();
+    ctx.arc(0, 0, mask.size / 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Draw pixelated blocks
+    for (let bx = 0; bx < srcW; bx += blockSize) {
+        for (let by = 0; by < srcH; by += blockSize) {
+            const pixel = tempCtx.getImageData(
+                Math.min(bx, srcW - 1),
+                Math.min(by, srcH - 1),
+                1, 1
+            ).data;
+            ctx.fillStyle = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+            ctx.fillRect(x + bx, y + by, blockSize, blockSize);
+        }
+    }
+}
+
+// Draw blur effect
+function drawBlur(ctx, x, y, width, height, img, mask) {
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+
+    const srcX = Math.max(0, mask.x - width / 2);
+    const srcY = Math.max(0, mask.y - height / 2);
+    const srcW = Math.min(width, img.naturalWidth - srcX);
+    const srcH = Math.min(height, img.naturalHeight - srcY);
+
+    tempCanvas.width = srcW;
+    tempCanvas.height = srcH;
+
+    // Scale down and up to create blur effect
+    const scale = 0.1;
+    tempCtx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW * scale, srcH * scale);
+    tempCtx.drawImage(tempCanvas, 0, 0, srcW * scale, srcH * scale, 0, 0, srcW, srcH);
+
+    // Create circular clip
+    ctx.beginPath();
+    ctx.arc(0, 0, mask.size / 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    ctx.drawImage(tempCanvas, x, y, srcW, srcH);
 }
 
 function updateProgress(current, total) {

@@ -8,6 +8,7 @@
     <meta name="description" content="自動偵測照片中的兒童臉部並用可愛 emoji 遮蓋，保護兒童隱私。支援批次上傳與下載。">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="rwd.css">
+    <link rel="stylesheet" href="mask-types.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -47,8 +48,18 @@
                 </div>
             </section>
 
+            <!-- Mask Type Selection -->
+            <section class="mask-type-section">
+                <h3>🎭 遮蓋類型</h3>
+                <div class="mask-type-options" id="maskTypeOptions">
+                    <button class="mask-type-btn active" data-type="emoji">😊 Emoji</button>
+                    <button class="mask-type-btn" data-type="mosaic">🔲 馬賽克</button>
+                    <button class="mask-type-btn" data-type="blur">💨 模糊</button>
+                </div>
+            </section>
+
             <!-- Emoji Selection -->
-            <section class="emoji-section">
+            <section class="emoji-section" id="emojiSection">
                 <h3>選擇遮蓋 Emoji</h3>
                 <div class="emoji-options" id="emojiOptions">
                     <button class="emoji-btn active" data-emoji="😊">😊</button>
