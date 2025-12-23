@@ -213,26 +213,96 @@ function handleMaskTypeSelect(e) {
     }
 }
 
-// Load Face Detection Models
+// Load Face Detection Models with Progress
 async function loadFaceDetectionModels() {
+    const modelSection = elements.modelSection;
+    const statusEl = elements.modelStatus;
+
+    // 創建進度條 HTML
+    const progressHTML = `
+        <div class="model-loading-progress">
+            <div class="model-loading-text">
+                <span class="model-loading-icon">⏳</span>
+                <span class="model-loading-status">正在載入 AI 模型 (Loading AI Models)...</span>
+            </div>
+            <div class="model-progress-bar">
+                <div class="model-progress-fill" style="width: 0%"></div>
+            </div>
+            <div class="model-loading-detail">首次載入約需 10-30 秒 (First load: ~10-30s)</div>
+            <div class="model-loading-steps">
+                <span class="model-step" data-step="1">1. SSD MobileNet</span>
+                <span class="model-step" data-step="2">2. FaceLandmarks</span>
+                <span class="model-step" data-step="3">3. Age/Gender</span>
+            </div>
+        </div>
+    `;
+
+    modelSection.querySelector('.model-status').innerHTML = progressHTML;
+
+    const progressFill = modelSection.querySelector('.model-progress-fill');
+    const loadingStatus = modelSection.querySelector('.model-loading-status');
+    const loadingDetail = modelSection.querySelector('.model-loading-detail');
+    const steps = modelSection.querySelectorAll('.model-step');
+
+    const updateProgress = (percent, status, detail) => {
+        progressFill.style.width = `${percent}%`;
+        if (status) loadingStatus.textContent = status;
+        if (detail) loadingDetail.textContent = detail;
+    };
+
+    const markStepComplete = (stepNum) => {
+        steps[stepNum - 1].classList.add('complete');
+    };
+
+    const markStepActive = (stepNum) => {
+        steps.forEach(s => s.classList.remove('active'));
+        steps[stepNum - 1].classList.add('active');
+    };
+
     try {
-        elements.modelStatus.textContent = '⏳ 正在載入增強版偵測模型...';
-
-        // 使用本地更強的 SSD MobileNet 模型
         const MODEL_URL = './models';
-        await Promise.all([
-            faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-            faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
-        ]);
 
+        // Step 1: SSD MobileNet (~5.6MB)
+        markStepActive(1);
+        updateProgress(5, '載入 SSD MobileNet 模型 (Loading SSD MobileNet)...', '臉部偵測核心模型 (~5.6MB)');
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+        markStepComplete(1);
+        updateProgress(50, null, null);
+
+        // Step 2: FaceLandmarks68 (~356KB)
+        markStepActive(2);
+        updateProgress(55, '載入臉部特徵點模型 (Loading FaceLandmarks)...', '用於旋轉偵測 (~356KB)');
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        markStepComplete(2);
+        updateProgress(75, null, null);
+
+        // Step 3: Age/Gender (~430KB)
+        markStepActive(3);
+        updateProgress(80, '載入年齡偵測模型 (Loading Age/Gender)...', '用於年齡判斷 (~430KB)');
+        await faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL);
+        markStepComplete(3);
+        updateProgress(100, null, null);
+
+        // Complete
         state.isModelLoaded = true;
-        elements.modelStatus.textContent = '✅ 增強版臉部偵測模型載入完成';
-        elements.modelSection.querySelector('.model-status').classList.add('ready');
-        showToast('增強版模型載入成功！偵測更精準', 'success');
+        modelSection.querySelector('.model-status').innerHTML = `
+            <div class="model-loading-complete">
+                <span class="model-complete-icon">✅</span>
+                <span>AI 模型載入完成！可以開始上傳照片 (Ready to upload)</span>
+            </div>
+        `;
+        modelSection.querySelector('.model-status').classList.add('ready');
+        showToast('AI 模型載入完成！', 'success');
+
     } catch (error) {
         console.error('Failed to load models:', error);
-        elements.modelStatus.textContent = '❌ 模型載入失敗，請重新整理頁面';
+        modelSection.querySelector('.model-status').innerHTML = `
+            <div class="model-loading-error">
+                <span>❌</span>
+                <span>模型載入失敗 (Load failed)，請重新整理頁面</span>
+                <button onclick="location.reload()" class="btn btn-small">🔄 重新整理</button>
+            </div>
+        `;
         showToast('模型載入失敗，請重新整理頁面', 'error');
     }
 }
