@@ -143,9 +143,9 @@ function setupEventListeners() {
     elements.editCanvas.addEventListener('mouseup', handleCanvasMouseUp);
     elements.editCanvas.addEventListener('mouseleave', handleCanvasMouseUp);
 
-    // Touch Events
-    elements.editCanvas.addEventListener('touchstart', handleCanvasTouchStart);
-    elements.editCanvas.addEventListener('touchmove', handleCanvasTouchMove);
+    // Touch Events (passive: false because we need preventDefault)
+    elements.editCanvas.addEventListener('touchstart', handleCanvasTouchStart, { passive: false });
+    elements.editCanvas.addEventListener('touchmove', handleCanvasTouchMove, { passive: false });
     elements.editCanvas.addEventListener('touchend', handleCanvasTouchEnd);
 }
 
