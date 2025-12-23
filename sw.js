@@ -2,7 +2,7 @@
    Service Worker - 離線快取支援
    ===================================================== */
 
-const CACHE_NAME = 'child-face-privacy-v1.1.0';
+const CACHE_NAME = 'child-face-privacy-v1.2.0';
 const STATIC_ASSETS = [
     './',
     './index.html',
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
     './rwd.css',
     './mask-types.css',
     './loading-progress.css',
+    './upload-progress.css',
     './app.js',
     './manifest.json',
     './icons/icon-192.png',

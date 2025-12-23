@@ -1,0 +1,243 @@
+/* =====================================================
+   Upload Progress Overlay Styles
+   ===================================================== */
+
+/* Overlay Container */
+.upload-progress-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 1500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.upload-progress-overlay.active {
+    display: flex;
+}
+
+/* Content Card */
+.upload-progress-content {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+    animation: scaleIn 0.3s ease;
+}
+
+/* Header */
+.upload-progress-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.upload-progress-icon {
+    font-size: 3rem;
+    display: inline-block;
+    animation: spin 2s linear infinite;
+}
+
+.upload-progress-header h3 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-top: 0.75rem;
+}
+
+/* Current Image Preview */
+.upload-progress-current {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius-sm);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.current-image-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-primary);
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--text-muted);
+}
+
+.current-image-preview::before {
+    content: '🖼️';
+}
+
+.current-image-preview.has-image::before {
+    content: none;
+}
+
+.current-image-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.current-file-name {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.25rem;
+}
+
+.current-file-count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Progress Stages */
+.upload-progress-stages {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.upload-stage {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius-sm);
+    transition: all 0.3s ease;
+    opacity: 0.5;
+}
+
+.upload-stage.active {
+    opacity: 1;
+    background: rgba(99, 102, 241, 0.15);
+    border-left: 3px solid var(--primary-color);
+}
+
+.upload-stage.complete {
+    opacity: 1;
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid var(--success-color);
+}
+
+.stage-icon {
+    font-size: 1.25rem;
+    width: 2rem;
+    text-align: center;
+}
+
+.stage-label {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.stage-status {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.upload-stage.active .stage-status::after {
+    content: '處理中...';
+    color: var(--primary-light);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.upload-stage.complete .stage-status::after {
+    content: '✓';
+    color: var(--success-color);
+}
+
+/* Progress Bar */
+.upload-progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.upload-progress-bar {
+    flex: 1;
+    height: 10px;
+    background: var(--bg-tertiary);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 5px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.upload-progress-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+.upload-progress-percent {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-light);
+    min-width: 3rem;
+    text-align: right;
+}
+
+/* Hint text */
+.upload-progress-hint {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Animations */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .upload-progress-content {
+        padding: 1.5rem;
+    }
+
+    .upload-progress-header h3 {
+        font-size: 1.1rem;
+    }
+
+    .upload-stage {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .stage-label {
+        font-size: 0.85rem;
+    }
+}

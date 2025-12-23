@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="rwd.css">
     <link rel="stylesheet" href="mask-types.css">
     <link rel="stylesheet" href="loading-progress.css">
+    <link rel="stylesheet" href="upload-progress.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -17,7 +18,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#6366f1">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 
@@ -117,6 +118,56 @@
                     <div class="progress-fill" id="progressFill"></div>
                 </div>
             </section>
+
+            <!-- Upload Progress Overlay -->
+            <div class="upload-progress-overlay" id="uploadProgressOverlay">
+                <div class="upload-progress-content">
+                    <div class="upload-progress-header">
+                        <span class="upload-progress-icon">🔄</span>
+                        <h3>正在處理照片 (Processing Photos)</h3>
+                    </div>
+
+                    <div class="upload-progress-current">
+                        <div class="current-image-preview" id="currentImagePreview"></div>
+                        <div class="current-image-info">
+                            <p class="current-file-name" id="currentFileName">準備中...</p>
+                            <p class="current-file-count" id="currentFileCount">0 / 0</p>
+                        </div>
+                    </div>
+
+                    <div class="upload-progress-stages" id="uploadProgressStages">
+                        <div class="upload-stage" data-stage="reading">
+                            <span class="stage-icon">📂</span>
+                            <span class="stage-label">讀取檔案</span>
+                            <span class="stage-status"></span>
+                        </div>
+                        <div class="upload-stage" data-stage="loading">
+                            <span class="stage-icon">🖼️</span>
+                            <span class="stage-label">載入圖片</span>
+                            <span class="stage-status"></span>
+                        </div>
+                        <div class="upload-stage" data-stage="detecting">
+                            <span class="stage-icon">🔍</span>
+                            <span class="stage-label">AI 偵測臉部</span>
+                            <span class="stage-status"></span>
+                        </div>
+                        <div class="upload-stage" data-stage="masking">
+                            <span class="stage-icon">🎭</span>
+                            <span class="stage-label">套用遮蓋</span>
+                            <span class="stage-status"></span>
+                        </div>
+                    </div>
+
+                    <div class="upload-progress-bar-container">
+                        <div class="upload-progress-bar">
+                            <div class="upload-progress-fill" id="uploadProgressFill"></div>
+                        </div>
+                        <span class="upload-progress-percent" id="uploadProgressPercent">0%</span>
+                    </div>
+
+                    <p class="upload-progress-hint">請稍候，大型照片可能需要較長時間...</p>
+                </div>
+            </div>
 
             <!-- Preview Grid -->
             <section class="preview-section" id="previewSection" style="display: none;">

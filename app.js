@@ -5,7 +5,7 @@
    ===================================================== */
 
 // 版本紀錄 (Version History)
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const VERSION_DATE = '2024-12-23';
 console.log(`%c🛡️ 兒童臉部隱私保護工具 v${VERSION} (Child Face Privacy Tool)`,
     'color: #6366f1; font-size: 16px; font-weight: bold;');
@@ -101,7 +101,15 @@ const elements = {
     cancelEditBtn: document.getElementById('cancelEditBtn'),
     editEmojiOptions: document.getElementById('editEmojiOptions'),
     maskTypeOptions: document.getElementById('maskTypeOptions'),
-    emojiSection: document.getElementById('emojiSection')
+    emojiSection: document.getElementById('emojiSection'),
+    // Upload Progress Overlay
+    uploadProgressOverlay: document.getElementById('uploadProgressOverlay'),
+    uploadProgressStages: document.getElementById('uploadProgressStages'),
+    uploadProgressFill: document.getElementById('uploadProgressFill'),
+    uploadProgressPercent: document.getElementById('uploadProgressPercent'),
+    currentImagePreview: document.getElementById('currentImagePreview'),
+    currentFileName: document.getElementById('currentFileName'),
+    currentFileCount: document.getElementById('currentFileCount')
 };
 
 // Initialize Application
@@ -347,9 +355,15 @@ async function processFiles(files) {
     elements.previewSection.style.display = 'block';
     updateProgress(0, totalFiles);
 
+    // Show upload progress overlay
+    showUploadProgressOverlay(totalFiles);
+
     for (const file of files) {
         try {
-            const result = await processImage(file);
+            // Update current file info
+            updateUploadProgress(processedCount, totalFiles, file.name, null);
+
+            const result = await processImageWithProgress(file, processedCount, totalFiles);
             state.processedImages.push(result);
             addPreviewCard(result, state.processedImages.length - 1);
             processedCount++;
@@ -362,6 +376,9 @@ async function processFiles(files) {
         }
     }
 
+    // Hide upload progress overlay
+    hideUploadProgressOverlay();
+
     state.isProcessing = false;
     elements.progressText.textContent = '處理完成！';
     showToast(`成功處理 ${state.processedImages.length} 張照片`, 'success');
@@ -373,6 +390,225 @@ async function processFiles(files) {
             block: 'start'
         });
     }, 300);
+}
+
+// ===================== UPLOAD PROGRESS OVERLAY =====================
+
+// Show upload progress overlay
+function showUploadProgressOverlay(totalFiles) {
+    if (!elements.uploadProgressOverlay) return;
+
+    elements.uploadProgressOverlay.classList.add('active');
+    elements.currentFileCount.textContent = `0 / ${totalFiles}`;
+    elements.currentFileName.textContent = '準備處理...';
+    elements.uploadProgressFill.style.width = '0%';
+    elements.uploadProgressPercent.textContent = '0%';
+
+    // Reset all stages
+    resetUploadStages();
+}
+
+// Hide upload progress overlay
+function hideUploadProgressOverlay() {
+    if (!elements.uploadProgressOverlay) return;
+
+    // Show completion state briefly
+    setUploadStage('masking', 'complete');
+    elements.uploadProgressFill.style.width = '100%';
+    elements.uploadProgressPercent.textContent = '100%';
+
+    setTimeout(() => {
+        elements.uploadProgressOverlay.classList.remove('active');
+        resetUploadStages();
+    }, 500);
+}
+
+// Reset all upload stages
+function resetUploadStages() {
+    if (!elements.uploadProgressStages) return;
+
+    const stages = elements.uploadProgressStages.querySelectorAll('.upload-stage');
+    stages.forEach(stage => {
+        stage.classList.remove('active', 'complete');
+    });
+}
+
+// Set upload stage state
+function setUploadStage(stageName, state) {
+    if (!elements.uploadProgressStages) return;
+
+    const stage = elements.uploadProgressStages.querySelector(`[data-stage="${stageName}"]`);
+    if (stage) {
+        if (state === 'active') {
+            stage.classList.remove('complete');
+            stage.classList.add('active');
+        } else if (state === 'complete') {
+            stage.classList.remove('active');
+            stage.classList.add('complete');
+        }
+    }
+}
+
+// Update upload progress
+function updateUploadProgress(current, total, fileName, imageDataUrl) {
+    if (!elements.uploadProgressOverlay) return;
+
+    elements.currentFileName.textContent = fileName;
+    elements.currentFileCount.textContent = `${current + 1} / ${total}`;
+
+    // Update image preview
+    if (imageDataUrl && elements.currentImagePreview) {
+        elements.currentImagePreview.style.backgroundImage = `url(${imageDataUrl})`;
+        elements.currentImagePreview.classList.add('has-image');
+    } else {
+        elements.currentImagePreview.style.backgroundImage = '';
+        elements.currentImagePreview.classList.remove('has-image');
+    }
+
+    // Calculate overall progress (current image position + stage progress within current image)
+    const baseProgress = (current / total) * 100;
+    elements.uploadProgressFill.style.width = `${Math.round(baseProgress)}%`;
+    elements.uploadProgressPercent.textContent = `${Math.round(baseProgress)}%`;
+}
+
+// Update stage progress within an image
+function updateStageProgress(current, total, stagePercent) {
+    if (!elements.uploadProgressOverlay) return;
+
+    const baseProgress = (current / total) * 100;
+    const stageContribution = (stagePercent / 100) * (100 / total);
+    const totalProgress = Math.min(100, baseProgress + stageContribution);
+
+    elements.uploadProgressFill.style.width = `${Math.round(totalProgress)}%`;
+    elements.uploadProgressPercent.textContent = `${Math.round(totalProgress)}%`;
+}
+
+// Process Single Image with Progress
+async function processImageWithProgress(file, currentIndex, totalFiles) {
+    return new Promise((resolve, reject) => {
+        // Stage 1: Reading file
+        resetUploadStages();
+        setUploadStage('reading', 'active');
+        updateStageProgress(currentIndex, totalFiles, 10);
+
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = async (e) => {
+            const originalDataUrl = e.target.result;
+
+            // Stage 1 complete, Stage 2: Loading image
+            setUploadStage('reading', 'complete');
+            setUploadStage('loading', 'active');
+            updateStageProgress(currentIndex, totalFiles, 25);
+            updateUploadProgress(currentIndex, totalFiles, file.name, originalDataUrl);
+
+            img.src = originalDataUrl;
+
+            img.onload = async () => {
+                try {
+                    // Stage 2 complete, Stage 3: Detecting faces
+                    setUploadStage('loading', 'complete');
+                    setUploadStage('detecting', 'active');
+                    updateStageProgress(currentIndex, totalFiles, 50);
+
+                    // 使用 SSD MobileNet 進行更精準的偵測
+                    const detections = await faceapi
+                        .detectAllFaces(img, new faceapi.SsdMobilenetv1Options({
+                            minConfidence: 0.3
+                        }))
+                        .withFaceLandmarks()
+                        .withAgeAndGender();
+
+                    // Stage 3 complete, Stage 4: Applying masks
+                    setUploadStage('detecting', 'complete');
+                    setUploadStage('masking', 'active');
+                    updateStageProgress(currentIndex, totalFiles, 75);
+
+                    const masks = [];
+                    let maskedCount = 0;
+
+                    for (const detection of detections) {
+                        const box = detection.detection.box;
+                        const age = Math.round(detection.age);
+                        const isChild = age <= state.ageThreshold;
+                        const shouldMask = !state.childOnlyMode || isChild;
+
+                        if (shouldMask) {
+                            // 計算臉部旋轉角度
+                            let rotation = 0;
+                            if (detection.landmarks) {
+                                const leftEye = detection.landmarks.getLeftEye();
+                                const rightEye = detection.landmarks.getRightEye();
+                                if (leftEye.length > 0 && rightEye.length > 0) {
+                                    const leftCenter = {
+                                        x: leftEye.reduce((s, p) => s + p.x, 0) / leftEye.length,
+                                        y: leftEye.reduce((s, p) => s + p.y, 0) / leftEye.length
+                                    };
+                                    const rightCenter = {
+                                        x: rightEye.reduce((s, p) => s + p.x, 0) / rightEye.length,
+                                        y: rightEye.reduce((s, p) => s + p.y, 0) / rightEye.length
+                                    };
+                                    rotation = Math.atan2(rightCenter.y - leftCenter.y, rightCenter.x - leftCenter.x);
+                                }
+                            }
+
+                            masks.push({
+                                id: `mask_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                x: box.x + box.width / 2,
+                                y: box.y + box.height / 2,
+                                size: Math.max(box.width, box.height) * (state.emojiSizePercent / 100),
+                                width: box.width,
+                                height: box.height,
+                                emoji: state.selectedEmoji,
+                                maskType: state.maskType,
+                                rotation: rotation,
+                                isChild: isChild,
+                                age: age
+                            });
+                            maskedCount++;
+                        }
+                    }
+
+                    // Create processed canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    ctx.drawImage(img, 0, 0);
+
+                    // Draw masks based on type
+                    for (const mask of masks) {
+                        drawMask(ctx, mask, img);
+                    }
+
+                    updateStageProgress(currentIndex, totalFiles, 95);
+
+                    canvas.toBlob((blob) => {
+                        // Stage 4 complete
+                        setUploadStage('masking', 'complete');
+                        updateStageProgress(currentIndex, totalFiles, 100);
+
+                        resolve({
+                            originalName: file.name,
+                            processedName: `protected_${file.name}`,
+                            blob: blob,
+                            dataUrl: canvas.toDataURL('image/png'),
+                            originalDataUrl: originalDataUrl,
+                            faceCount: detections.length,
+                            maskedCount: maskedCount,
+                            masks: masks,
+                            width: img.naturalWidth,
+                            height: img.naturalHeight
+                        });
+                    }, 'image/png');
+                } catch (error) { reject(error); }
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+    });
 }
 
 // Process Single Image
