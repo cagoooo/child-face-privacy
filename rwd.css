@@ -1,0 +1,51 @@
+/* 超小螢幕 */
+@media (max-width: 320px) {
+    .app-container {
+        padding: 0.5rem;
+    }
+
+    .logo h1 {
+        font-size: 1.1rem;
+    }
+
+    .emoji-btn {
+        width: 2rem;
+        height: 2rem;
+    }
+}
+
+/* 觸控優化 */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+    }
+
+    .emoji-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .comparison-divider {
+        width: 8px;
+    }
+
+    .comparison-divider::before {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+/* 橫向模式 */
+@media (max-height: 500px) and (orientation: landscape) {
+    .header {
+        margin-bottom: 0.5rem;
+    }
+
+    .tagline {
+        display: none;
+    }
+
+    .preview-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
