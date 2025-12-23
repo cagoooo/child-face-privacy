@@ -348,16 +348,16 @@ function addPreviewCard(result, index) {
         <div class="preview-info">
             <p class="preview-filename" title="${result.processedName}">${result.processedName}</p>
             <div class="preview-card-actions">
-                <button class="btn btn-small btn-edit" onclick="openEditMode(${index})">
+                <button class="btn btn-small btn-edit" onclick="openEditMode(${index})" title="編輯遮蓋">
                     <span>✏️</span> 編輯
                 </button>
-                <button class="btn btn-secondary btn-small btn-compare active" onclick="toggleComparison(this)">
-                    <span>🔄</span>
+                <button class="btn btn-secondary btn-small btn-compare active" onclick="toggleComparison(this)" title="對比原圖">
+                    <span>🔄</span> 對比
                 </button>
-                <button class="btn btn-secondary btn-small" onclick="downloadSingle('${result.processedName}')">
-                    <span>💾</span>
+                <button class="btn btn-secondary btn-small" onclick="downloadSingle('${result.processedName}')" title="下載照片">
+                    <span>💾</span> 下載
                 </button>
-                <button class="btn btn-secondary btn-small" onclick="removeCard(${index})">
+                <button class="btn btn-secondary btn-small btn-delete" onclick="removeCard(${index})" title="刪除">
                     <span>🗑️</span>
                 </button>
             </div>

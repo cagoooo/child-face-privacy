@@ -49,3 +49,22 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* 預覽卡片按鈕 RWD */
+.preview-card-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* 超小螢幕：按鈕網格排列 */
+@media (max-width: 380px) {
+    .preview-card-actions {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.25rem;
+    }
+
+    .preview-card-actions .btn-edit {
+        grid-column: span 2;
+    }
+}
