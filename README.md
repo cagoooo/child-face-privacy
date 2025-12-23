@@ -21,24 +21,18 @@
 
 ---
 
-## 📋 版本紀錄
+## 📋 版本紀錄 (Version History)
 
-### v1.1.0 (2024-12-23) - Enhanced Detection & Mask Types
-- ✅ SSD MobileNet 模型（更精準偵測）
-- ✅ FaceLandmarks68 臉部特徵點
-- ✅ 臉部旋轉偵測（Emoji 隨臉部旋轉）
-- ✅ 馬賽克遮蓋效果
-- ✅ 模糊遮蓋效果
-- ✅ 遮蓋類型選擇 UI
-- ✅ 模型載入進度條（詳細步驟顯示）
+> 完整更新紀錄請見 [CHANGELOG.md](./CHANGELOG.md)
 
-### v1.0.0 (2024-12-23) - Initial Release
-- ✅ 自動臉部偵測 + 年齡判斷
-- ✅ Emoji 遮蓋 (8 種表情)
-- ✅ 手動編輯功能
-- ✅ 對比滑桿
-- ✅ 批次上傳/下載
-- ✅ PWA 離線支援 + RWD 響應式設計
+### v1.1.0 (2024-12-23) - **Current Stable Version**
+- ✅ **SSD MobileNet 模型**：更精準的臉部偵測
+- ✅ **多種遮蓋效果**：Emoji / 馬賽克 / 模糊
+- ✅ **臉部旋轉**：遮蓋隨臉部角度自動旋轉
+- ✅ **系統優化**：修復 Service Worker 與觸控操作問題
+
+### v1.0.0 (2024-12-23)
+- ✅ 初始發布：核心偵測、編輯、PWA 功能
 
 ---
 

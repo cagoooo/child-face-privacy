@@ -49,6 +49,7 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
 /* 預覽卡片按鈕 RWD */
 .preview-card-actions .btn {
     display: inline-flex;
@@ -60,11 +61,11 @@
 @media (max-width: 380px) {
     .preview-card-actions {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.25rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
     }
 
     .preview-card-actions .btn-edit {
-        grid-column: span 2;
+        grid-column: auto;
     }
 }

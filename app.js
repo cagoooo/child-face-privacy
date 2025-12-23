@@ -444,7 +444,7 @@ async function processImage(file) {
                     const canvas = document.createElement('canvas');
                     canvas.width = img.naturalWidth;
                     canvas.height = img.naturalHeight;
-                    const ctx = canvas.getContext('2d');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
                     ctx.drawImage(img, 0, 0);
 
                     // Draw masks based on type
@@ -506,7 +506,7 @@ function drawMask(ctx, mask, img) {
 function drawMosaic(ctx, x, y, width, height, img, mask) {
     const blockSize = Math.max(8, Math.floor(mask.size / 8));
     const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
 
     // Get the face region from original image
     const srcX = Math.max(0, mask.x - width / 2);
@@ -540,7 +540,7 @@ function drawMosaic(ctx, x, y, width, height, img, mask) {
 // Draw blur effect
 function drawBlur(ctx, x, y, width, height, img, mask) {
     const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
 
     const srcX = Math.max(0, mask.x - width / 2);
     const srcY = Math.max(0, mask.y - height / 2);
@@ -604,11 +604,11 @@ function addPreviewCard(result, index) {
                 <button class="btn btn-secondary btn-small btn-compare active" onclick="toggleComparison(this)" title="對比原圖">
                     <span>🔄</span> 對比
                 </button>
-                <button class="btn btn-secondary btn-small" onclick="downloadSingle('${result.processedName}')" title="下載照片">
+                <button class="btn btn-secondary btn-small" onclick="downloadSingle(${index})" title="下載照片">
                     <span>💾</span> 下載
                 </button>
                 <button class="btn btn-secondary btn-small btn-delete" onclick="removeCard(${index})" title="刪除">
-                    <span>🗑️</span>
+                    <span>🗑️</span> 刪除
                 </button>
             </div>
         </div>
@@ -736,7 +736,7 @@ function openEditMode(index) {
     img.onload = () => {
         editState.image = img;
         editState.canvas = elements.editCanvas;
-        editState.ctx = editState.canvas.getContext('2d');
+        editState.ctx = editState.canvas.getContext('2d', { willReadFrequently: true });
 
         // Calculate scale to fit
         const wrapper = document.querySelector('.edit-canvas-wrapper');
@@ -963,7 +963,7 @@ function finishEditing() {
     const canvas = document.createElement('canvas');
     canvas.width = result.width;
     canvas.height = result.height;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     const img = new Image();
     img.src = result.originalDataUrl;
@@ -1007,8 +1007,8 @@ function closeEditModal() {
 
 // ===================== OTHER FUNCTIONS =====================
 
-function downloadSingle(filename) {
-    const result = state.processedImages.find(img => img.processedName === filename);
+function downloadSingle(index) {
+    const result = state.processedImages[index];
     if (!result) {
         showToast('找不到該照片', 'error');
         return;
@@ -1023,7 +1023,7 @@ function downloadSingle(filename) {
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(img, 0, 0);
 
         canvas.toBlob(function (blob) {
@@ -1125,5 +1125,14 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// Monkey patch getContext to force willReadFrequently
+const originalGetContext = HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext = function (type, attributes) {
+    if (type === '2d') {
+        attributes = { ...attributes, willReadFrequently: true };
+    }
+    return originalGetContext.call(this, type, attributes);
+};
 
 document.addEventListener('DOMContentLoaded', init);
