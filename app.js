@@ -1,6 +1,38 @@
 /* =====================================================
    兒童臉部隱私保護工具 - Application Logic
+   Version: 1.0.0 (2023-12-23)
    ===================================================== */
+
+// 版本紀錄
+const VERSION = '1.0.0';
+const VERSION_DATE = '2023-12-23';
+console.log(`%c🛡️ 兒童臉部隱私保護工具 v${VERSION}`,
+    'color: #6366f1; font-size: 16px; font-weight: bold;');
+console.log(`%c📅 更新日期: ${VERSION_DATE}`, 'color: #94a3b8;');
+console.log('%c📋 更新紀錄:', 'color: #10b981; font-weight: bold;');
+console.log(`%c
+  v1.0.0 (2023-12-23)
+  ├─ ✨ 核心功能
+  │   ├─ 自動臉部偵測 (face-api.js)
+  │   ├─ 智慧年齡判斷 (可設定 ≤12 歲)
+  │   ├─ Emoji 遮蓋 (6 種表情)
+  │   └─ 批次上傳/下載
+  │
+  ├─ 🔧 編輯功能
+  │   ├─ 手動新增/移除遮蓋
+  │   ├─ 拖曳移動遮蓋位置
+  │   └─ 調整遮蓋大小
+  │
+  ├─ 🎨 UI/UX 優化
+  │   ├─ 對比滑桿 (原圖/處理後)
+  │   ├─ 處理完成自動滾動
+  │   ├─ 按鈕文字說明
+  │   └─ 完整 RWD 響應式設計
+  │
+  └─ 📱 PWA 支援
+      ├─ 離線快取
+      └─ 可安裝為 App
+`, 'color: #64748b;');
 
 // Application State
 const state = {
