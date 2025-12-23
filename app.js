@@ -244,8 +244,12 @@ async function processImage(file) {
 
             img.onload = async () => {
                 try {
+                    // 使用更高解析度和更低閾值來增強偵測
                     const detections = await faceapi
-                        .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.3 }))
+                        .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({
+                            inputSize: 640,        // 從 512 提升到 640
+                            scoreThreshold: 0.2    // 從 0.3 降低到 0.2
+                        }))
                         .withAgeAndGender();
 
                     const masks = [];
