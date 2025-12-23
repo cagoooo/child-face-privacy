@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>兒童臉部隱私保護工具 | Child Face Privacy Tool</title>
+    <meta name="description" content="自動偵測照片中的兒童臉部並用可愛 emoji 遮蓋，保護兒童隱私。支援批次上傳與下載。">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- PWA Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-emoji">🛡️</span>
+                <h1>兒童臉部隱私保護</h1>
+            </div>
+            <p class="subtitle">自動偵測並遮蓋照片中的臉部，保護兒童隱私</p>
+            <!-- Install Button -->
+            <button class="install-btn" id="installBtn" style="display: none;">
+                <span>📲</span> 安裝應用
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📷</div>
+                    <h2>拖放照片到這裡</h2>
+                    <p>或點擊選擇檔案</p>
+                    <p class="upload-hint">支援 JPG、PNG、WebP 格式，可一次上傳多張</p>
+                    <input type="file" id="fileInput" accept="image/*" multiple hidden>
+                </div>
+            </section>
+
+            <!-- Emoji Selection -->
+            <section class="emoji-section">
+                <h3>選擇遮蓋 Emoji</h3>
+                <div class="emoji-options" id="emojiOptions">
+                    <button class="emoji-btn active" data-emoji="😊">😊</button>
+                    <button class="emoji-btn" data-emoji="🌸">🌸</button>
+                    <button class="emoji-btn" data-emoji="⭐">⭐</button>
+                    <button class="emoji-btn" data-emoji="🎀">🎀</button>
+                    <button class="emoji-btn" data-emoji="🌈">🌈</button>
+                    <button class="emoji-btn" data-emoji="🦋">🦋</button>
+                    <button class="emoji-btn" data-emoji="🌻">🌻</button>
+                    <button class="emoji-btn" data-emoji="💖">💖</button>
+                </div>
+                <div class="size-control">
+                    <label for="emojiSize">遮蓋大小：</label>
+                    <input type="range" id="emojiSize" min="80" max="150" value="110">
+                    <span id="sizeValue">110%</span>
+                </div>
+            </section>
+
+            <!-- Age Detection Settings -->
+            <section class="age-section">
+                <h3>🧒 年齡偵測設定</h3>
+                <div class="age-controls">
+                    <div class="age-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="childOnlyToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">只遮蓋兒童臉部</span>
+                    </div>
+                    <div class="age-threshold" id="ageThresholdControl">
+                        <label for="ageThreshold">兒童年齡閾值：</label>
+                        <input type="range" id="ageThreshold" min="3" max="18" value="12">
+                        <span id="ageValue">≤ 12 歲</span>
+                    </div>
+                </div>
+                <p class="age-hint">💡 開啟後將使用 AI 偵測年齡，只遮蓋被判定為兒童的臉部</p>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="progress-section" id="progressSection" style="display: none;">
+                <div class="progress-info">
+                    <span id="progressText">處理中...</span>
+                    <span id="progressCount">0 / 0</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </section>
+
+            <!-- Preview Grid -->
+            <section class="preview-section" id="previewSection" style="display: none;">
+                <div class="preview-header">
+                    <h3>處理結果預覽</h3>
+                    <div class="preview-actions">
+                        <button class="btn btn-secondary" id="clearAllBtn">
+                            <span>🗑️</span> 清除全部
+                        </button>
+                        <button class="btn btn-primary" id="downloadAllBtn">
+                            <span>📦</span> 批次下載 ZIP
+                        </button>
+                    </div>
+                </div>
+                <div class="preview-grid" id="previewGrid"></div>
+            </section>
+
+            <!-- Model Loading -->
+            <section class="model-section" id="modelSection">
+                <div class="model-status">
+                    <div class="loading-spinner"></div>
+                    <span id="modelStatus">正在載入臉部偵測模型...</span>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>🔒 所有圖片僅在您的瀏覽器中處理，不會上傳至任何伺服器</p>
+        </footer>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Edit Modal -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-container">
+            <div class="edit-toolbar">
+                <div class="edit-toolbar-left">
+                    <button class="edit-tool-btn" id="addMaskBtn" title="新增遮蓋">
+                        <span>➕</span> 新增遮蓋
+                    </button>
+                    <div class="edit-emoji-select">
+                        <span>Emoji:</span>
+                        <div class="edit-emoji-options" id="editEmojiOptions">
+                            <button class="edit-emoji-btn active" data-emoji="😊">😊</button>
+                            <button class="edit-emoji-btn" data-emoji="🌸">🌸</button>
+                            <button class="edit-emoji-btn" data-emoji="⭐">⭐</button>
+                            <button class="edit-emoji-btn" data-emoji="🎀">🎀</button>
+                            <button class="edit-emoji-btn" data-emoji="💖">💖</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="edit-toolbar-right">
+                    <button class="edit-tool-btn cancel" id="cancelEditBtn" title="取消">
+                        <span>✖️</span> 取消
+                    </button>
+                    <button class="edit-tool-btn primary" id="finishEditBtn" title="完成編輯">
+                        <span>✅</span> 完成編輯
+                    </button>
+                </div>
+            </div>
+            <div class="edit-canvas-wrapper">
+                <canvas id="editCanvas"></canvas>
+            </div>
+            <div class="edit-hint">
+                <p>🖱️ 拖曳移動 | 🔲 拖曳角落調整大小 | ❌ 點擊遮蓋上的 X 刪除</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
