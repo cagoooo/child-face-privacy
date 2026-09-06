@@ -1,5 +1,7 @@
 # 🛡️ 兒童臉部隱私保護工具 (Child Face Privacy Tool)
 
+> 📌 **目前版本：v1.1.0**（依據 `CHANGELOG.md`）
+
 自動偵測照片中的兒童臉部並用可愛 Emoji、馬賽克或模糊效果遮蓋，保護兒童隱私。
 
 🌐 **線上使用**: https://cagoooo.github.io/child-face-privacy/
