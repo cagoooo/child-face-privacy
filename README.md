@@ -104,7 +104,7 @@ MIT License
 - Repository：`cagoooo/child-face-privacy`
 - 可見性：公開
 - 主要技術：JavaScript
-- 線上入口：未在 GitHub repository metadata 設定
+- 線上入口：<https://cagoooo.github.io/child-face-privacy/>
 
 ### 可以怎麼應用
 
