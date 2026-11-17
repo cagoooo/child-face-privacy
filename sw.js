@@ -2,7 +2,9 @@
    Service Worker - 離線快取支援
    ===================================================== */
 
-const CACHE_NAME = 'child-face-privacy-v1.3.1';
+// 同網域（cagoooo.github.io）各工具共用快取空間，只清自己前綴的舊快取
+const CACHE_PREFIX = 'child-face-privacy-';
+const CACHE_NAME = CACHE_PREFIX + 'v1.3.1';
 const STATIC_ASSETS = [
     './',
     './index.html',
@@ -41,7 +43,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames
-                    .filter((name) => name !== CACHE_NAME)
+                    .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
                     .map((name) => caches.delete(name))
             );
         })
