@@ -5,8 +5,8 @@
    ===================================================== */
 
 // 版本紀錄 (Version History)
-const VERSION = '1.3.0';
-const VERSION_DATE = '2024-12-23';
+const VERSION = '1.3.1';
+const VERSION_DATE = '2026-11-17';
 console.log(`%c🛡️ 兒童臉部隱私保護工具 v${VERSION} (Child Face Privacy Tool)`,
     'color: #6366f1; font-size: 16px; font-weight: bold;');
 console.log(`%c📅 更新日期 (Updated): ${VERSION_DATE}`, 'color: #94a3b8;');
